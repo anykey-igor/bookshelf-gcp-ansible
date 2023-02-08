@@ -1,6 +1,7 @@
 #!/bin/bash
 
-export TF_VAR_project_id=gcp-2022-bookshelf-ianikeiev1
+PROJECT_ID=gcp-2022-bookshelf-ianikeiev1
+export TF_VAR_project_id=$PROJECT_ID
 export TF_VAR_user_pass=bookshelf-pass
 
 SERVICE_ACCOUNT=terraform-sa
@@ -40,7 +41,7 @@ gcloud beta billing projects link $PROJECT_ID --billing-account="$BILLING_ACCOUN
 echo "Done"
 #[END Billing]
 
-
+#[START SERVICE Account]
 echo "Check available Service Account and binding roles..."
 if gcloud iam service-accounts list --filter="displayName:$SERVICE_ACCOUNT" --format="table(displayName)" | grep -q $SERVICE_ACCOUNT; then
   echo "Service Account - $SERVICE_ACCOUNT: present"
@@ -79,13 +80,16 @@ export GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/$CREDENTIAL_SA_JSON
 #[START Create Storage Bucket - remote state]
 gcloud storage buckets create gs://$BUCKET_NAME --project=$PROJECT_ID --default-storage-class=$STORAGE_CLASS --location=$LOCATION $STATE_STORAGE
 gsutil versioning set on gs://$BUCKET_NAME
+for role in ${BUCKET_ROLES[*]}; do
+  gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com --role="$role"
+done
 #[START SERVICE Account for Terraform and get json key]
 
-
-
+#[START CREATE SOURCE REPOSITORY]
 gcloud source repos create $INFRA_REPO
 gcloud source repos create $ANSIBLE_REPO
 gcloud source repos create $APP_REPO
+#[END CREATE SOURCE REPOSITORY]
 
 #[START ENABLE API]
 echo "Start Enable API..."
@@ -93,15 +97,7 @@ gcloud services enable compute.googleapis.com cloudresourcemanager.googleapis.co
 echo "Done"
 #[END ENABLE API]
 
-#[END Create Storage Bucket]
-for role in ${BUCKET_ROLES[*]}; do
-  gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com --role="$role"
-done
-
-
-#[START Create Source Repository Infra - Terraform; InstanceConfig - Anisible; bookshelfApp - FlaskApplication]
-
-#gcloud source repos set-iam-policy REPOSITORY_NAME POLICY_FILE
+#[START Update Source Repository Infra - Terraform; InstanceConfig - Anisible; bookshelfApp - FlaskApplication]
 gcloud source repos clone $INFRA_REPO --project=$PROJECT_ID
 ## shellcheck disable=SC2154
 cp -r ../Source/Infra/* $INFRA_REPO
@@ -112,7 +108,6 @@ git commit -m "add files"
 git push -u origin master
 # shellcheck disable=SC2103
 cd ..
-pwd
 gcloud source repos clone $ANSIBLE_REPO --project=$PROJECT_ID
 ## shellcheck disable=SC2154
 cp -r ../Source/InstanceConfig/* $ANSIBLE_REPO
@@ -122,8 +117,6 @@ git add .
 git commit -m "add files"
 git push -u origin master
 cd ..
-#rm -rf $ANSIBLE_REPO
-pwd
 gcloud source repos clone $APP_REPO --project=$PROJECT_ID
 ## shellcheck disable=SC2154
 cp -r ../Source/bookshelfApp/* $APP_REPO
@@ -133,9 +126,7 @@ git add .
 git commit -m "add files"
 git push -u origin master
 cd ..
-#rm -rf $APP_REPO
 export -p | grep TF_VAR
-echo
 export -p | grep GOOGLE
 # shellcheck disable=SC2164
 cd $INFRA_REPO
