@@ -1,10 +1,8 @@
 #!/bin/bash
 
-PROJECT_ID=gcp-2022-bookshelf-ianikeiev1
-export TF_VAR_project_id=$PROJECT_ID
+export TF_VAR_project_id=gcp-2022-bookshelf-ianikeiev1
+export TF_VAR_user_pass=bookshelf-pass
 
-#PROJECT_API=("storage.googleapis.com compute.googleapis.com" "cloudresourcemanager.googleapis.com" "servicenetworking.googleapis.com" "sqladmin.googleapis.com" "sourcerepo.googleapis.com")
-#
 SERVICE_ACCOUNT=terraform-sa
 SA_ROLES=("roles/source.admin" "roles/iam.serviceAccountUser" "roles/iam.serviceAccountAdmin" "roles/iam.serviceAccountTokenCreator" "roles/compute.admin" "roles/storage.admin" "roles/cloudsql.admin" "roles/pubsub.admin" "roles/servicenetworking.networksAdmin" "roles/resourcemanager.projectIamAdmin")  #"roles/editor"
 DESCRIPTION_SA=ServiceAccountTerraform
@@ -135,10 +133,11 @@ git add .
 git commit -m "add files"
 git push -u origin master
 cd ..
-rm -rf $APP_REPO
+#rm -rf $APP_REPO
 export -p | grep TF_VAR
 echo
 export -p | grep GOOGLE
+# shellcheck disable=SC2164
 cd $INFRA_REPO
 
 terraform init
