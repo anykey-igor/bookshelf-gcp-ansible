@@ -1,0 +1,216 @@
+---
+# tasks file for deploy_app
+- name: Get Metadata MYSQL_URL
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/MYSQL_URL
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata MYSQL_URL
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable MYSQL_URL
+  set_fact:
+    cloud_sql_proxy_connection_name: "{{ result.content }}"
+
+- name: Get Metadata BUCKET_URL
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/BUCKET_URL
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata BUCKET_URL
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable bucket_url
+  set_fact:
+    bucket_url: "{{ result.content }}"
+
+- name: Get Metadata PROJECT_ID
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/PROJECT_ID
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata PROJECT_ID
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable bucket_url
+  set_fact:
+    project_id: "{{ result.content }}"
+
+- name: Get Metadata MYSQL_DB
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/MYSQL_DB
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata MYSQL_DB
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable bucket_url
+  set_fact:
+    mysql_db: "{{ result.content }}"
+
+- name: Get Metadata MYSQL_USER
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/MYSQL_USER
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata MYSQL_USER
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable bucket_url
+  set_fact:
+    mysql_username: "{{ result.content }}"
+
+- name: Get Metadata MYSQL_PASS
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/MYSQL_PASS
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+#- name: Result Get Metadata MYSQL_PASS
+#  debug:
+#    msg: "{{ result.content }}"
+- name: Set Variable bucket_url
+  set_fact:
+    mysql_pass: "{{ result.content }}"
+
+- name: Creat system user "{{ deploy_user_name }}"
+  user:
+    name: "{{ deploy_user_name }}"
+    comment: "Deploy nologin User for pythonapp "
+    state: present
+    shell: /sbin/nologin
+    createhome: yes
+    home: "{{ home_directory_user }}"
+  become: true
+
+- name: Clone repositoy with App
+  git:
+    repo: "{{ cloud_source_repos_app }}"
+    dest: "{{ dest_directory }}"
+    clone: yes
+    update: yes
+
+- name: check if virtualenv library already installed or not
+  stat:
+    path: "{{virtualenv_dest }}"
+  register: pip_virtualenv_installed
+
+
+- name: Install virtualenv module
+  pip:
+    name: virtualenv
+  when: pip_virtualenv_installed.stat.exists == False
+
+- name: Create Virtualenv
+  file:
+    name: "{{ virtualenv_dest }}"
+    state: directory
+
+
+- name: Initiate virtualenv
+  pip:
+    virtualenv: "{{ virtualenv_dest }}"
+    virtualenv_python: python3.7.3
+    name: pip
+    state: forcereinstall
+
+- name: Install requirement in viertualenv
+  pip:
+    virtualenv: "{{ virtualenv_dest }}"
+    virtualenv_python: python3.7.3
+    requirements: "{{ dest_directory }}/requirements.txt"
+
+- name: Set permission on folder "{{ dest_directory }}"
+  file:
+    dest: "{{ dest_directory }}"
+    recurse: yes
+    owner: "{{ deploy_user_name }}"
+    group: "{{ deploy_user_group }}"
+    mode: "0775"
+
+- name: Configure Supervicor
+  template:
+    src: python-app.conf.j2
+    dest: /etc/supervisor/conf.d/python-app.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: restart cloud-sql-proxy
+  service:
+    name=cloud-sql-proxy
+    state=restarted
+    enabled=yes
+
+- name: Replace project_id in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)your-project-id(|s)'
+    replace: '{{ project_id }}'
+
+- name: Replace DATA_BACKEND in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)datastore(|s)'
+    replace: 'cloudsql'
+
+- name: Replace CLOUD_STORAGE_BUCKET in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)your-bucket-name(|s)'
+    replace: '{{ bucket_url }}'
+
+- name: Replace CLOUDSQL_USER in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)root(|s)'
+    replace: '{{ mysql_username }}'
+
+
+- name: Replace CLOUDSQL_PASSWORD in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)your-cloudsql-password(|s)'
+    replace: '{{ mysql_pass }}'
+
+- name: Replace CLOUDSQL_DATABASE in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)your-database(|s)'
+    replace: '{{ mysql_db }}'
+
+- name: Replace CLOUDSQL_DATABASE in config.py
+  replace:
+    path: "{{ dest_directory }}/config.py"
+    regexp: '(s|)your-cloudsql-connection-name(|s)'
+    replace: '{{ cloud_sql_proxy_connection_name }}'
+
+- name: Update sql_model DB for app
+  command: /opt/app/env/bin/python /opt/app/bookshelf/model_cloudsql.py
+  register: python_result
+
+- name: Get stdout or stderr from the output
+  debug:
+    msg: "{{ python_result.stdout }}"
+
+- name: Start Supervisor
+  supervisorctl:
+    name: pythonapp
+    state: restarted

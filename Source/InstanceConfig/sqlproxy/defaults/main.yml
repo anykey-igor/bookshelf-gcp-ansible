@@ -1,0 +1,6 @@
+---
+cloud_sql_proxy_tcp_port: 3306
+cloud_sql_proxy_socket_dir: /var/run/cloud-sql-proxy
+cloud_sql_proxy_working_dir: /usr/sbin
+cloud_sql_proxy_install_path: /usr/sbin/cloud-sql-proxy
+cloud_sql_proxy_download_url: https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64

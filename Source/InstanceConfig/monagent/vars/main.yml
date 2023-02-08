@@ -1,0 +1,3 @@
+---
+# vars file for monagent
+file_name: "{{ google_fluentd_agent_download_url | basename }}"

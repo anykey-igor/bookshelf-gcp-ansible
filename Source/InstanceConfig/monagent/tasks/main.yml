@@ -1,0 +1,15 @@
+---
+# tasks file for monagent
+- name: Download Google Cloud Monitoring Agent
+  get_url:
+    url: "{{ google_fluentd_agent_download_url }}"
+    dest: /tmp/
+    mode: 0755
+
+- name: Install Google Cloud Monitoring Agent
+  shell: /tmp/{{ file_name }} --also-install
+
+- name: Remove the script {{ file_name }}
+  file:
+    path: /tmp/{{ file_name }}
+    state: absent

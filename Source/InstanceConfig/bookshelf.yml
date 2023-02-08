@@ -1,0 +1,9 @@
+---
+- hosts: localhost
+  become: true
+
+  roles:
+    - monagent
+    - packages
+    - sqlproxy
+    - deploy_app

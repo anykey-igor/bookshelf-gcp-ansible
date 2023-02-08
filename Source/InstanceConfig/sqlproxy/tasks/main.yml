@@ -1,0 +1,44 @@
+---
+# tasks file for sqlproxy
+- name: Install cloud-sql-proxy
+  get_url:
+    url: "{{ cloud_sql_proxy_download_url }}"
+    dest: "{{ cloud_sql_proxy_install_path }}"
+    mode: 0755
+
+- name: Print MYSQL_URL "{{ cloud_sql_proxy_connection_name }}"
+  debug:
+    msg: "{{ cloud_sql_proxy_connection_name }}"
+
+- name: Get Metadata
+  uri:
+    url: http://metadata.google.internal/computeMetadata/v1/instance/attributes/MYSQL_URL
+    method: GET
+    return_content: yes
+    headers:
+      Metadata-Flavor: Google
+  register: result
+
+- name: Print Resutl
+  debug:
+    msg: "{{ result.content }}"
+
+- name: Set Variable MYSQL_URL
+  set_fact:
+    cloud_sql_proxy_connection_name: "{{ result.content }}"
+
+- name: Configure cloud-sql-proxy service
+  template:
+    src: cloud-sql-proxy.service.j2
+    dest: /etc/systemd/system/cloud-sql-proxy.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload systemd configuration
+    - restart cloud-sql-proxy
+
+- name: Enable cloud-sql-proxy service
+  service:
+    name: cloud-sql-proxy.service
+    enabled: true

@@ -1,0 +1,8 @@
+---
+# defaults file for deploy_app
+cloud_source_repos_app: https://source.developers.google.com/p/gcp-2022-bookshelf-ianikeiev1/r/bookshelfApp
+dest_directory: /opt/app
+virtualenv_dest: /opt/app/env
+deploy_user_name: pythonapp
+deploy_user_group: pythonapp
+home_directory_user: /home/pythonapp

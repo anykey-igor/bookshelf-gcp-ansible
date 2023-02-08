@@ -1,0 +1,7 @@
+---
+# vars file for sqlproxy
+cloud_sql_proxy_connection_name: "{{ lookup('env','MYSQL_URL') }}"
+cloud_sql_proxy_owner: "root"
+cloud_sql_proxy_group: "root"
+cloud_sql_proxy_install_path: "/usr/local/bin/cloud_sql_proxy"
+cloud_sql_proxy_download_url: "https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64"

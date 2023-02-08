@@ -1,0 +1,7 @@
+---
+# vars file for deploy_app
+mysql_username: ""
+mysql_pass: ""
+mysql_db: ""
+bucket_url: ""
+project_id: ""
