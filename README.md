@@ -1,10 +1,4 @@
-cd script
-run ./startProject.sh
-wait
-demo
+# Automation deploying with Bash, Terraform and Ansible on Google Cloud Platform
 
-
-https://cloud.google.com/compute/docs/instances/startup-scripts/linux
-https://cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation
-
-https://www.googlecloudcommunity.com/gc/Infrastructure-Compute-Storage/Monitoring-agent-installation-failing/m-p/436805
+## Project Description 
+#### Deploying infrastructure in Google Cloud Platform for Bookshelf application. The application is based on the Flask framework and written using Python language.
