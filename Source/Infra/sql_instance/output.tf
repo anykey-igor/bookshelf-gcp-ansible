@@ -18,6 +18,7 @@ output "instance_connection_name" {
 
   value       = [for i in google_sql_database_instance.sql_instance : i.connection_name]
   description = "The connection name of the master instance to be used in connection strings"
+
 }
 output "instance_self_link" {
   value       = [for i in google_sql_database_instance.sql_instance : i.self_link]
